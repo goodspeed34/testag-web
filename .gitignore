@@ -1,0 +1,10 @@
+.vault-notes.md
+.vault-notes-archive/
+.env
+.env.*
+!.env.example
+.deno/
+coverage/
+dist/
+node_modules/
+*.log

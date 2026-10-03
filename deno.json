@@ -1,0 +1,35 @@
+{
+  "nodeModulesDir": "auto",
+  "imports": {
+    "react": "npm:react@19.2.0",
+    "react/jsx-runtime": "npm:react@19.2.0/jsx-runtime",
+    "react-dom/server": "npm:react-dom@19.2.0/server",
+    "react-dom/client": "npm:react-dom@19.2.0/client",
+    "@mui/material": "npm:@mui/material@7.3.4",
+    "@emotion/react": "npm:@emotion/react@11.14.0",
+    "@emotion/cache": "npm:@emotion/cache@11.14.0",
+    "@emotion/server/create-instance": "npm:@emotion/server@11.11.0/create-instance",
+    "@emotion/styled": "npm:@emotion/styled@11.14.1",
+    "pg": "npm:pg@8.23.0",
+    "esbuild": "npm:esbuild@0.25.11",
+    "@types/react": "npm:@types/react@19.2.2",
+    "@types/react-dom": "npm:@types/react-dom@19.2.2",
+    "@types/pg": "npm:@types/pg@8.23.1"
+  },
+  "tasks": {
+    "build": "deno run -A build.ts",
+    "dev": "deno run -A dev.ts",
+    "start": "NODE_ENV=production deno run --allow-net --allow-read=public,dist --allow-env main.ts",
+    "check": "deno check main.ts src/client.tsx build.ts dev.ts",
+    "test": "NODE_ENV=production deno test --allow-env src/db_test.ts src/server_test.ts",
+    "fmt": "deno fmt"
+  },
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "lib": ["deno.window", "dom", "dom.iterable"],
+    "types": ["@types/react", "@types/react-dom"],
+    "strict": true
+  },
+  "exclude": ["dist", "node_modules"]
+}

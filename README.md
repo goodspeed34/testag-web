@@ -40,6 +40,13 @@ A Unix-socket database needs additional read/write permission for its socket
 directory when using this restricted command. `deno task dev` already handles
 local socket permissions.
 
+The structured-data builder supports atomic incremental updates. Tracking
+columns `archive_digest` and `builder_version` on partitions are internal to the
+builder; the web app continues using its existing SELECT queries. Published
+release metadata changes when an update commits. The first tracking-column
+upgrade of an older database can temporarily block reads. The app does not run
+imports. See the structured-data README for update commands.
+
 ## Pages
 
 | Route                     | Purpose                                                                          |

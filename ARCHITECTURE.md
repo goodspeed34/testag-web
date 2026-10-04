@@ -58,7 +58,9 @@ The app reads `structured-data/db/schema.sql`:
   value, source category, explicit entity/overlay labels, eligibility, metrics,
   operator-list completeness, and eight paired rank fields.
 - `contest_result_operator`: operator membership and source callsign spellings.
-- `contest_result_partition`: contest/year/mode key, source URL, retrieval time.
+- `contest_result_partition`: contest/year/mode key, source URL, retrieval time;
+  builder-owned nullable `archive_digest` and `builder_version` columns are
+  ignored by web queries.
 - `testag_dataset_release`: digest, build time, latest retrieval, license,
   attribution, and partition/result/operator-membership counts.
 
@@ -66,6 +68,15 @@ Release freshness uses `built_at_utc`, replacing the former `generated_at_utc`
 field. The app does not use the removed `contest_result_official_rank` table or
 former `computed_world_rank` field. An absent release row indicates an
 incomplete or unpublished load; results are not queried until a release exists.
+
+Structured-data incremental updates publish partition changes and the current
+release metadata in one transaction. Failed updates retain the previous dataset;
+unchanged updates retain its build timestamp. Incremental publication keeps only
+the current release row. Existing web queries and digest-based cache invalidation
+continue to work. Separate queries within a request can span an update commit;
+requests do not guarantee one dataset snapshot. The first upgrade that adds
+tracking columns to an older database may temporarily block reads. The web app
+never performs this upgrade or invokes the builder.
 
 Search unions station and operator indexes, deduplicates entries, and prefers
 the station label when both match. It joins partition metadata for each source

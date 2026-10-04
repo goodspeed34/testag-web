@@ -31,5 +31,9 @@
     "types": ["@types/react", "@types/react-dom"],
     "strict": true
   },
-  "exclude": ["dist", "node_modules"]
+  "exclude": ["dist", "node_modules"],
+  "deploy": {
+    "org": "goodspeed34",
+    "app": "testag"
+  }
 }

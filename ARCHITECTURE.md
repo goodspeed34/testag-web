@@ -55,9 +55,18 @@ archive's seven contest IDs, modes `cw`, `ssb`, and `mixed`, and years
 The app reads `structured-data/db/schema.sql`:
 
 - `contest_result`: source/normalized station callsigns, score literal/numeric
-  value, source category, explicit entity/overlay labels, eligibility, metrics,
-  operator-list completeness, and eight paired rank fields.
-- `contest_result_operator`: operator membership and source callsign spellings.
+  value, source category, preserved entity labels, optional canonical ADIF ID,
+  separately inferred entity labels, resolution status, explicit overlay labels,
+  eligibility, metrics, operator-list completeness, eight paired rank fields,
+  internal integer `result_id`, and category/explanation lookup keys. `entry_id`
+  remains the unique original archive identifier. Metrics use compact PostgreSQL
+  `json`.
+- `contest_result_operator`: operator membership and source callsign spellings,
+  linked by integer `result_id`.
+- `contest_result_category`: exact source category text, joined by
+  `category_id`.
+- `contest_result_eligibility_basis`: exact eligibility explanation text, joined
+  by `eligibility_basis_id`.
 - `contest_result_partition`: contest/year/mode key, source URL, retrieval time;
   builder-owned nullable `archive_digest` and `builder_version` columns are
   ignored by web queries.
@@ -72,11 +81,21 @@ incomplete or unpublished load; results are not queried until a release exists.
 Structured-data incremental updates publish partition changes and the current
 release metadata in one transaction. Failed updates retain the previous dataset;
 unchanged updates retain its build timestamp. Incremental publication keeps only
-the current release row. Existing web queries and digest-based cache invalidation
-continue to work. Separate queries within a request can span an update commit;
-requests do not guarantee one dataset snapshot. The first upgrade that adds
-tracking columns to an older database may temporarily block reads. The web app
-never performs this upgrade or invokes the builder.
+the current release row. Existing web queries and digest-based cache
+invalidation continue to work. Separate queries within a request can span an
+update commit; requests do not guarantee one dataset snapshot. Adding missing
+tracking columns to a compatible compact schema can temporarily block reads. The
+web app never performs this upgrade or invokes the builder.
+
+Adopting this compact schema requires a full structured-data rebuild of an
+approved database before running this web version; the previous text-key/JSONB
+schema is incompatible. Reapply SELECT grants to all six tables after
+rebuilding, including both lookup tables. All eight rank values remain stored;
+the four rank indexes have been removed. Numeric IDs stay internal and may
+change after a rebuild or partition replacement. Original public JSON fields and
+archive IDs are preserved, with three added DXCC fields: the query selects
+explicit result fields, reconstructs category and eligibility explanation text
+through joins, and returns parsed JSON metrics.
 
 Search unions station and operator indexes, deduplicates entries, and prefers
 the station label when both match. It joins partition metadata for each source
@@ -86,12 +105,18 @@ UI does not claim a total callsign result count.
 
 The table preserves source score text when present and otherwise uses the stored
 numeric score. Source categories and all eight ranks are displayed as stored.
-Official/calculated values appear in separate columns for category worldwide,
-category within DXCC/entity, explicit overlay worldwide, and explicit overlay
-within DXCC/entity. Nulls display as a dash, explained as unavailable or
-inapplicable. The browser does not calculate ranks, infer entities, or repair
-records. Details include source callsigns, eligibility, operator completeness,
-raw metrics, and provenance.
+DXCC cells prefer contest-provided text, otherwise display the inferred entity
+with a localized callsign-inference label. Details expose the source/inferred
+labels, ADIF code, and localized resolution status. Inference is performed only
+by the offline archive recalculation command using a pinned, historical CQRLOG
+reference. Ambiguous or unresolved entities have no in-DXCC rank. Older compact
+databases require a full rebuild to add these fields before running this web
+app. Official/calculated values appear in separate columns for category
+worldwide, category within DXCC/entity, explicit overlay worldwide, and explicit
+overlay within DXCC/entity. Nulls display as a dash, explained as unavailable or
+inapplicable. The browser does not calculate ranks, perform callsign lookups, or
+repair records. Details include source callsigns, eligibility, operator
+completeness, raw metrics, and provenance.
 
 Statistics groups entries by partition and reports entry counts, eligible-entry
 counts, and counts of entries containing any official rank. Aggregate rows are
@@ -116,9 +141,12 @@ table scrolling.
 ## Security and deployment
 
 - Credentials remain in environment configuration; `.env` is ignored.
-- Use a dedicated SELECT-only database role. Sessions additionally enforce
-  `default_transaction_read_only=on`, a 15-second statement timeout, four pooled
-  connections, and a five-second connection timeout.
+- Use a dedicated SELECT-only database role. Each archive read uses
+  `BEGIN READ ONLY` and `SET LOCAL statement_timeout = '15s'`, followed by
+  commit or rollback. Transaction-local settings support Prisma transaction
+  pooling without startup `options`, which its pooled endpoint rejects. Failed
+  rollback discards the connection. The pool retains four connections and a
+  five-second connection timeout.
 - SQL binds callsign, limit, and offset. Source values render as React text.
   Links accept only HTTP/HTTPS and use `noopener noreferrer`.
 - Hydration JSON escapes `<` and Unicode line separators to prevent source text
@@ -134,8 +162,8 @@ table scrolling.
 Deno Deploy uses build command `deno task build`, dynamic entrypoint `main.ts`,
 `NODE_ENV=production`, and secret `DATABASE_URL`. `PORT` defaults to 8000.
 PostgreSQL hosting, provider TLS requirements, database ownership, and
-production publication remain environment decisions. No schema/data changes are
-required.
+production publication remain environment decisions. Deploy this web version
+with the compact database contract described above.
 
 ## Verification and rights
 
@@ -146,3 +174,8 @@ existing development archive only.
 
 Web: GNU AGPL-3.0-or-later. Data: CC BY-NC-ND 4.0 International. Attribution:
 Gong BI1XJT <BI1XJT@rad1o.cn>.
+
+The database stores `award_eligibility` as the PostgreSQL enum
+`testag_award_eligibility` (`eligible`, `ineligible`, `review`). Queries and the
+public API retain these string labels. Rebuild databases with the older text
+column before publishing the current dataset.

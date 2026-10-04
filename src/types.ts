@@ -46,6 +46,15 @@ export type Result = Record<typeof rankFields[number], number | null> & {
   category_source: string;
   location_code_source: string | null;
   dxcc_entity_source: string | null;
+  dxcc_adif: number | null;
+  dxcc_entity_inferred: string | null;
+  dxcc_resolution:
+    | "source"
+    | "callsign"
+    | "unresolved"
+    | "ambiguous_year"
+    | "ambiguous_prefix"
+    | "no_entity";
   overlay_category_source: string | null;
   score_source: string | null;
   score: string | null;

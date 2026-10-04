@@ -115,11 +115,21 @@ export function App({ data }: { data: PageData }) {
         </Link>
       )
       : "—";
+  const dxccLabels: Record<Result["dxcc_resolution"], MessageKey> = {
+    source: "dxccSource",
+    callsign: "dxccCallsign",
+    unresolved: "dxccUnresolved",
+    ambiguous_year: "dxccAmbiguousYear",
+    ambiguous_prefix: "dxccAmbiguousPrefix",
+    no_entity: "dxccNoEntity",
+  };
   const fields: [MessageKey, keyof Result][] = [
     ["originalCallsign", "station_callsign_source"],
     ["category", "category_source"],
     ["location", "location_code_source"],
-    ["entity", "dxcc_entity_source"],
+    ["entitySource", "dxcc_entity_source"],
+    ["entityInferred", "dxcc_entity_inferred"],
+    ["dxccAdif", "dxcc_adif"],
     ["overlay", "overlay_category_source"],
     ["basis", "eligibility_basis"],
     ["zones", "cq_zones"],
@@ -373,7 +383,20 @@ export function App({ data }: { data: PageData }) {
                       <TableCell className="category-cell">
                         {row.category_source}
                       </TableCell>
-                      <TableCell>{value(row.dxcc_entity_source)}</TableCell>
+                      <TableCell>
+                        {value(
+                          row.dxcc_entity_source ?? row.dxcc_entity_inferred,
+                        )}
+                        {row.dxcc_resolution === "callsign" && (
+                          <Typography
+                            component="span"
+                            variant="caption"
+                            display="block"
+                          >
+                            {t("dxccCallsign")}
+                          </Typography>
+                        )}
+                      </TableCell>
                       <TableCell>
                         {value(row.overlay_category_source)}
                       </TableCell>
@@ -696,6 +719,14 @@ export function App({ data }: { data: PageData }) {
                     </TableCell>
                   </TableRow>
                 ))}
+                <TableRow>
+                  <TableCell component="th" scope="row">
+                    {t("dxccBasis")}
+                  </TableCell>
+                  <TableCell>
+                    {t(dxccLabels[selected.dxcc_resolution])}
+                  </TableCell>
+                </TableRow>
                 <TableRow>
                   <TableCell component="th" scope="row">
                     {t("eligibility")}

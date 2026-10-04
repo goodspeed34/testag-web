@@ -19,9 +19,11 @@ permissions so PostgreSQL Unix sockets also work. A database is optional for
 viewing the pages; its absence is reported without sample data.
 
 Copy `.env.example` to `.env` and configure `DATABASE_URL` for an existing
-structured-data database. Use a SELECT-only role. The app also sets PostgreSQL
-sessions to read-only and limits statements to 15 seconds. `PORT` defaults to
-8000. Shell variables take precedence over `.env`.
+structured-data database. Use a SELECT-only role. The app also uses explicit
+read-only transactions and limits statements to 15 seconds with
+transaction-local settings. It omits PostgreSQL startup `options` so Prisma
+pooled connections work. `PORT` defaults to 8000. Shell variables take
+precedence over `.env`.
 
 For a production-style local run with a TCP database configured in the shell:
 
@@ -43,9 +45,21 @@ local socket permissions.
 The structured-data builder supports atomic incremental updates. Tracking
 columns `archive_digest` and `builder_version` on partitions are internal to the
 builder; the web app continues using its existing SELECT queries. Published
-release metadata changes when an update commits. The first tracking-column
-upgrade of an older database can temporarily block reads. The app does not run
+release metadata changes when an update commits. Adding missing tracking columns
+to a compatible compact schema can temporarily block reads. The app does not run
 imports. See the structured-data README for update commands.
+
+The compact database uses integer result relationships and lookup tables for
+exact category and eligibility explanation text. Original archive IDs, official
+ranks, metrics, and source details are preserved. The enriched archive adds
+`dxcc_adif`, `dxcc_entity_inferred`, and `dxcc_resolution`; both in-DXCC rank
+scopes use source-first, historical callsign fallback. Inferred entities are
+labelled in English and Chinese; details show provenance and unresolved reasons.
+**Rebuild an approved database with the updated structured-data builder before
+running this web version**; the former text-key/JSONB and pre-inference compact
+schemas are incompatible. Reapply SELECT grants to all six tables, including
+`contest_result_category` and `contest_result_eligibility_basis`, after
+rebuilding. Later archive updates can continue to use `--incremental`.
 
 ## Pages
 
@@ -99,6 +113,17 @@ deno task build
 deno fmt --check
 ```
 
+For read-only query integration checks against a prepared compact database:
+
+```sh
+TESTAG_WEB_TEST_DATABASE_URL='postgresql://…' NODE_ENV=production deno test --allow-env --allow-net src/db_integration_test.ts
+```
+
+This check covers station/operator relationships, deduplication, ordering,
+pagination, exact lookup text, parsed metrics, all eight rank fields, and
+partition counts. It never builds or writes the database. Add read/write
+permissions for the socket directory when using a PostgreSQL Unix socket.
+
 Tests cover input validation, routing, language precedence, server-rendered
 pages, escaping, API validation, and request limits without connecting to
 PostgreSQL. For UI changes, check every page in both languages at desktop and
@@ -120,3 +145,8 @@ the contract and limits.
 Web code: GNU AGPL version 3 or later. Result data: CC BY-NC-ND 4.0
 International. Attribution: Gong BI1XJT <BI1XJT@rad1o.cn>. Source organizers
 retain rights to their original publications.
+
+The database stores `award_eligibility` as the PostgreSQL enum
+`testag_award_eligibility` (`eligible`, `ineligible`, `review`). Queries and the
+public API retain these string labels. Rebuild databases with the older text
+column before publishing the current dataset.

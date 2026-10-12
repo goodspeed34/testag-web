@@ -9,7 +9,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
   Link,
   Table,
   TableBody,
@@ -31,18 +30,36 @@ import {
 } from "./types.ts";
 import { type MessageKey, translator } from "./locales.ts";
 
+// Colors follow the operating system preference through CSS variables, so the
+// server-rendered page needs no script to pick a scheme.
 const theme = createTheme({
-  palette: {
-    primary: { main: "#1565c0" },
-    background: { default: "#fff", paper: "#fff" },
+  cssVariables: true,
+  colorSchemes: {
+    light: {
+      palette: {
+        primary: { main: "#1d4ed8" },
+        background: { default: "#f6f7f9", paper: "#ffffff" },
+        text: { primary: "#111827", secondary: "#4b5563" },
+        divider: "#e5e7eb",
+      },
+    },
+    dark: {
+      palette: {
+        primary: { main: "#7aa2ff" },
+        background: { default: "#0f1115", paper: "#171a21" },
+        text: { primary: "#e6e8ec", secondary: "#9aa3b2" },
+        divider: "#2a2f3a",
+      },
+    },
   },
   typography: {
-    fontFamily: 'Roboto, "Noto Sans SC", "Segoe UI", Arial, sans-serif',
+    fontFamily:
+      'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", sans-serif',
     fontSize: 13,
-    h6: { fontSize: "1.15rem", fontWeight: 500 },
-    button: { textTransform: "none" },
+    h6: { fontSize: "1.15rem", fontWeight: 600 },
+    button: { textTransform: "none", fontWeight: 600 },
   },
-  shape: { borderRadius: 3 },
+  shape: { borderRadius: 8 },
   components: {
     MuiButton: { defaultProps: { size: "small", disableElevation: true } },
     MuiTextField: { defaultProps: { size: "small", variant: "outlined" } },
@@ -50,13 +67,11 @@ const theme = createTheme({
     MuiTableCell: {
       styleOverrides: {
         root: {
-          padding: "6px 10px",
-          fontSize: "0.78rem",
-          borderColor: "#e0e0e0",
+          padding: "7px 12px",
+          fontSize: "0.8rem",
         },
         head: {
           fontWeight: 600,
-          backgroundColor: "#f5f5f5",
           whiteSpace: "nowrap",
         },
       },
@@ -186,6 +201,7 @@ export function App({ data }: { data: PageData }) {
             color="inherit"
             underline="none"
           >
+            <span className="brand-mark" aria-hidden="true">T</span>
             {t("brandName")}
           </Link>
           <Box
@@ -222,6 +238,7 @@ export function App({ data }: { data: PageData }) {
               href={pageLink(data, { lang: "en" })}
               aria-label={t("english")}
               aria-current={data.locale === "en" ? "true" : undefined}
+              lang="en"
             >
               {t("englishShort")}
             </Button>
@@ -229,6 +246,7 @@ export function App({ data }: { data: PageData }) {
               href={pageLink(data, { lang: "zh-CN" })}
               aria-label={t("chinese")}
               aria-current={data.locale === "zh-CN" ? "true" : undefined}
+              lang="zh-CN"
             >
               {t("chinese")}
             </Button>
@@ -237,20 +255,33 @@ export function App({ data }: { data: PageData }) {
       </AppBar>
       <Box component="main" className="page-content">
         {(data.page === "main" || data.page === "callsign") && (
-          <>
-            <Typography component="h1" variant="h6" className="page-title">
-              {t(data.page === "main" ? "main" : "results")}
-              {data.page === "callsign" && (
+          <section
+            className={data.page === "main"
+              ? "search-panel hero"
+              : "search-panel"}
+          >
+            {data.page === "main"
+              ? (
                 <>
-                  · <span className="mono">{data.callsign}</span>
+                  <Typography component="h1" className="hero-title">
+                    {t("heroTitle")}
+                  </Typography>
+                  <Typography className="hero-lede" color="text.secondary">
+                    {t("description")}
+                  </Typography>
                 </>
+              )
+              : (
+                <Typography component="h1" className="results-title">
+                  <span className="overline">{t("results")}</span>
+                  <span className="mono callsign-title">{data.callsign}</span>
+                </Typography>
               )}
-            </Typography>
             <Box
               component="form"
               action="/lookup"
               method="get"
-              className="compact-form"
+              className="compact-form search-form"
             >
               <input type="hidden" name="lang" value={data.locale} />
               <TextField
@@ -260,6 +291,7 @@ export function App({ data }: { data: PageData }) {
                 defaultValue={data.callsign}
                 error={data.error === "invalidCallsign"}
                 required
+                size={data.page === "main" ? "medium" : "small"}
                 className="callsign-input"
                 slotProps={{
                   htmlInput: {
@@ -271,7 +303,13 @@ export function App({ data }: { data: PageData }) {
                   },
                 }}
               />
-              <Button type="submit" variant="contained">{t("search")}</Button>
+              <Button
+                type="submit"
+                variant="contained"
+                size={data.page === "main" ? "large" : "small"}
+              >
+                {t("search")}
+              </Button>
               {data.callsign && (
                 <Button
                   href={pageLink(data, {}, "/").split("?")[0] +
@@ -284,34 +322,33 @@ export function App({ data }: { data: PageData }) {
                 id="lookup-hint"
                 variant="body2"
                 color="text.secondary"
+                className="search-hint"
               >
                 {t("hint")}
               </Typography>
             </Box>
-            {status}
-            {data.page === "main" && (
+            {data.page === "main" && data.error && (
               <Typography
                 variant="body2"
-                color={data.error ? "error" : "text.secondary"}
-                role={data.error ? "alert" : undefined}
+                color="error"
+                role="alert"
+                className="form-error"
               >
-                {data.error ? t(data.error as MessageKey) : t("description")}
+                {t(data.error as MessageKey)}
               </Typography>
             )}
-          </>
+            {status}
+          </section>
         )}
         {data.page === "callsign" && (
           <>
             <div className="table-toolbar">
               <Typography component="h2" variant="subtitle2">
                 {t("results")}
-                {data.callsign && (
-                  <>
-                    · <span className="mono">{data.callsign}</span>
-                  </>
-                )}
               </Typography>
-              <span>{data.rows.length} {t("rows")}</span>
+              <span className="count-chip">
+                {data.rows.length} {t("rows")}
+              </span>
             </div>
             <TableContainer
               className="data-table results-table"
@@ -347,7 +384,9 @@ export function App({ data }: { data: PageData }) {
                         {t(key)}
                       </TableCell>
                     ))}
-                    <TableCell rowSpan={2}>{t("source")}</TableCell>
+                    <TableCell rowSpan={2} className="group-start">
+                      {t("source")}
+                    </TableCell>
                     <TableCell rowSpan={2}>{t("details")}</TableCell>
                   </TableRow>
                   <TableRow>
@@ -355,7 +394,9 @@ export function App({ data }: { data: PageData }) {
                       <TableCell
                         key={key}
                         align="right"
-                        className="rank-subheading"
+                        className={`rank-subheading ${
+                          index % 2 ? "" : "group-start"
+                        }`}
                       >
                         {t(index % 2 ? "calculated" : "official")}
                       </TableCell>
@@ -392,6 +433,7 @@ export function App({ data }: { data: PageData }) {
                             component="span"
                             variant="caption"
                             display="block"
+                            className="inferred-note"
                           >
                             {t("dxccCallsign")}
                           </Typography>
@@ -411,15 +453,18 @@ export function App({ data }: { data: PageData }) {
                           key={key}
                           align="right"
                           className={`mono ${
-                            index % 2 ? "calculated-cell" : ""
+                            index % 2 ? "calculated-cell" : "group-start"
                           }`}
                         >
                           {value(row[key])}
                         </TableCell>
                       ))}
-                      <TableCell>{sourceLink(row.source_url)}</TableCell>
+                      <TableCell className="group-start">
+                        {sourceLink(row.source_url)}
+                      </TableCell>
                       <TableCell>
                         <Button
+                          variant="outlined"
                           onClick={() => setSelected(row)}
                           aria-label={`${
                             t("details")
@@ -494,25 +539,22 @@ export function App({ data }: { data: PageData }) {
             </Typography>
             {status}
             {data.release && (
-              <div className="metadata-strip">
-                <span>
-                  {t("partitions")}:{" "}
-                  <strong>{data.release.partition_count}</strong>
-                </span>
-                <span>
-                  {t("contests")}: <strong>{data.contestCount}</strong>
-                </span>
-                <span>
-                  {t("memberships")}:{" "}
-                  <strong>
-                    {number(data.release.operator_membership_count)}
-                  </strong>
-                </span>
-                <span>
-                  {t("latest")}:{" "}
-                  <strong>{date(data.release.latest_retrieved_at_utc)}</strong>
-                </span>
-              </div>
+              <dl className="stat-tiles">
+                {([
+                  ["partitions", number(data.release.partition_count)],
+                  ["contests", number(data.contestCount)],
+                  [
+                    "memberships",
+                    number(data.release.operator_membership_count),
+                  ],
+                  ["latest", date(data.release.latest_retrieved_at_utc)],
+                ] as const).map(([label, val]) => (
+                  <div key={label} className="stat-tile">
+                    <dt>{t(label)}</dt>
+                    <dd className={label === "latest" ? "" : "mono"}>{val}</dd>
+                  </div>
+                ))}
+              </dl>
             )}
             <Box
               component="form"
@@ -635,7 +677,7 @@ export function App({ data }: { data: PageData }) {
             <Typography component="h1" variant="h6" className="page-title">
               {t("project")}
             </Typography>
-            <Typography paragraph variant="body2">
+            <Typography paragraph className="about-lede">
               {t("projectBody")}
             </Typography>
             {([["dataHeading", "dataBody"], ["rankingHeading", "rankingBody"], [
@@ -649,46 +691,60 @@ export function App({ data }: { data: PageData }) {
                 <Typography paragraph variant="body2">{t(body)}</Typography>
               </section>
             ))}
-            <Typography component="h2" variant="subtitle1">
-              {t("release")}
-            </Typography>
-            {status}
-            {data.release && (
-              <TableContainer className="data-table">
-                <Table aria-label={t("release")}>
-                  <TableBody>
-                    {([
-                      ["digest", data.release.release_id],
-                      ["built", date(data.release.built_at_utc)],
-                      ["latest", date(data.release.latest_retrieved_at_utc)],
-                      ["records", number(data.release.entry_count)],
-                      ["partitions", data.release.partition_count],
-                      ["license", data.release.dataset_license],
-                      ["attribution", data.release.attribution],
-                    ] as const).map(([label, val]) => (
-                      <TableRow key={label}>
-                        <TableCell component="th" scope="row">
-                          {t(label)}
-                        </TableCell>
-                        <TableCell className="breakable">{val}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
+            <section>
+              <Typography component="h2" variant="subtitle1">
+                {t("release")}
+              </Typography>
+              {status}
+              {data.release && (
+                <TableContainer className="data-table">
+                  <Table aria-label={t("release")}>
+                    <TableBody>
+                      {([
+                        ["digest", data.release.release_id],
+                        ["built", date(data.release.built_at_utc)],
+                        ["latest", date(data.release.latest_retrieved_at_utc)],
+                        ["records", number(data.release.entry_count)],
+                        ["partitions", data.release.partition_count],
+                        ["license", data.release.dataset_license],
+                        ["attribution", data.release.attribution],
+                      ] as const).map(([label, val]) => (
+                        <TableRow key={label}>
+                          <TableCell component="th" scope="row">
+                            {t(label)}
+                          </TableCell>
+                          <TableCell
+                            className={label === "digest"
+                              ? "breakable mono"
+                              : "breakable"}
+                          >
+                            {val}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </section>
           </Box>
         )}
         {data.page === "notFound" && (
-          <>
-            <Typography component="h1" variant="h6">{t("notFound")}</Typography>
-            <Typography>{t("missingPage")}</Typography>
-            <Button href={`/?lang=${data.locale}`}>{t("main")}</Button>
-          </>
+          <section className="search-panel hero not-found">
+            <span className="not-found-code" aria-hidden="true">404</span>
+            <Typography component="h1" className="hero-title">
+              {t("notFound")}
+            </Typography>
+            <Typography className="hero-lede" color="text.secondary">
+              {t("missingPage")}
+            </Typography>
+            <Button variant="contained" href={`/?lang=${data.locale}`}>
+              {t("main")}
+            </Button>
+          </section>
         )}
       </Box>
       <Box component="footer" className="site-footer">
-        <Divider />
         <Typography variant="caption" color="text.secondary">
           {t("footer")} · {t("appLicense")} · {t("dataLicense")}
         </Typography>
@@ -709,7 +765,11 @@ export function App({ data }: { data: PageData }) {
         </DialogTitle>
         <DialogContent dividers>
           {selected && (
-            <Table size="small" aria-label={t("detailsTitle")}>
+            <Table
+              size="small"
+              aria-label={t("detailsTitle")}
+              className="details-table"
+            >
               <TableBody>
                 {fields.map(([label, key]) => (
                   <TableRow key={key}>

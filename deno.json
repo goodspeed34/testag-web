@@ -19,8 +19,9 @@
   "tasks": {
     "build": "deno run -A build.ts",
     "dev": "deno run -A dev.ts",
+    "preview": "deno run -A dev.ts preview.ts",
     "start": "NODE_ENV=production deno run --allow-net --allow-read=public,dist --allow-env main.ts",
-    "check": "deno check main.ts src/client.tsx build.ts dev.ts",
+    "check": "deno check main.ts preview.ts src/client.tsx build.ts dev.ts",
     "test": "NODE_ENV=production deno test --allow-env src/db_test.ts src/server_test.ts",
     "fmt": "deno fmt"
   },

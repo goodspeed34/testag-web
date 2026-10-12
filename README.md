@@ -18,6 +18,16 @@ watches the server, and optionally loads `.env`. It uses full local Deno
 permissions so PostgreSQL Unix sockets also work. A database is optional for
 viewing the pages; its absence is reported without sample data.
 
+To review the interface with sample data and no database, run:
+
+```sh
+deno task preview
+```
+
+It bundles and watches like `deno task dev` but serves `preview.ts`, which fills
+every page with clearly labelled sample results. Search for `N0NE` to see the
+empty-results state. It is for local review only; deploy `main.ts`.
+
 Copy `.env.example` to `.env` and configure `DATABASE_URL` for an existing
 structured-data database. Use a SELECT-only role. The app also uses explicit
 read-only transactions and limits statements to 15 seconds with

@@ -1,6 +1,9 @@
 import { context } from "esbuild";
 import { buildOptions } from "./build.ts";
 
+// `deno task preview` passes preview.ts to serve sample data instead.
+const entrypoint = Deno.args[0] ?? "main.ts";
+
 await Deno.mkdir("dist", { recursive: true });
 const builder = await context(buildOptions);
 await builder.rebuild();
@@ -9,9 +12,9 @@ const server = new Deno.Command(Deno.execPath(), {
   args: [
     "run",
     "--env-file=.env",
-    "--watch=src,public,dist,main.ts",
+    `--watch=src,public,dist,${entrypoint}`,
     "-A",
-    "main.ts",
+    entrypoint,
   ],
   env: { NODE_ENV: "production" },
   stdin: "inherit",

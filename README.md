@@ -79,7 +79,9 @@ to 50 results, with `?offset=50` for the next page. Statistics accepts optional
 
 English and Simplified Chinese are available on every page. `?lang=en` or
 `?lang=zh-CN` overrides a saved language cookie; otherwise the browser language
-determines the first visit. Visible copy is in `src/locales.ts`.
+determines the first visit. Visible copy is in `src/locales.ts`. Light and dark
+color schemes follow the operating system preference through Material UI CSS
+variables, without client-side scheme detection.
 
 Search, navigation, filtering, and pagination work without browser JavaScript.
 The client hydrates Material UI controls and the entry-details dialog. Narrow
